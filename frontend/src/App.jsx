@@ -11,7 +11,7 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import Hero from "./components/Hero.jsx";
 import Features from "./pages/Features.jsx";
-import Vehicle from "./pages/Vehicle.jsx"; // Vehicle page in JSX
+import Vehicle from "./pages/Vehicle.jsx";
 import Fine from "./pages/Fine.jsx";
 import Toll from "./pages/Toll.jsx";
 import Transaction from "./pages/Transaction.jsx";
@@ -21,8 +21,16 @@ import Register from "./pages/Register";
 import LearnMore from "./pages/LearnMore";
 import Analytics from "./pages/Analytics.jsx";
 import Contact from "./pages/Contact.jsx";
+import AdminDashboard from "./pages/AdminDashBoard.jsx";
 
-import { AuthProvider, AuthContext } from "./context/AuthContext";
+import { AuthProvider } from "./context/AuthProvider";
+import { AuthContext } from "./context/AuthContext";
+
+// ✅ AdminRoute wrapper for admin-only pages
+function AdminRoute({ children }) {
+  const { user } = useContext(AuthContext);
+  return user && user.role === "admin" ? children : <Navigate to="/login" replace />;
+}
 
 // ✅ PrivateRoute wrapper for protected pages
 function PrivateRoute({ children }) {
@@ -30,7 +38,7 @@ function PrivateRoute({ children }) {
   return user ? children : <Navigate to="/login" replace />;
 }
 
-// ✅ Layout to conditionally show/hide Navbar/Footer
+// ✅ Layout for user pages
 function Layout({ children }) {
   const location = useLocation();
 
@@ -47,80 +55,85 @@ function Layout({ children }) {
   );
 }
 
-// ✅ Main App
+// ✅ Main AppRoutes
 function AppRoutes() {
-  const { user } = useContext(AuthContext); // ✅ check if logged in
+  const { user } = useContext(AuthContext);
 
   return (
-    <Layout>
-      <Routes>
-        {/* Landing page OR redirect to dashboard */}
-        <Route
-          path="/"
-          element={user ? <Navigate to="/dashboard" replace /> : <Hero />}
-        />
+    <Routes>
+      {/* ---------- Admin Pages (❌ no Layout) ---------- */}
+      <Route
+        path="/admin/dashboard"
+        element={
+          <AdminRoute>
+            <AdminDashboard />
+          </AdminRoute>
+        }
+      />
 
-        {/* Features page (public) */}
-        <Route path="/features" element={<Features />} />
-        <Route path="/contact" element={<Contact />} />
+      {/* ---------- User Pages (✅ with Layout) ---------- */}
+      <Route
+        path="/"
+        element={user ? <Navigate to="/dashboard" replace /> : <Layout><Hero /></Layout>}
+      />
+      <Route path="/features" element={<Layout><Features /></Layout>} />
+      <Route path="/contact" element={<Layout><Contact /></Layout>} />
 
-        {/* Feature subpages (protected) */}
-        <Route
-          path="/features/vehicles"
-          element={
-            <PrivateRoute>
-              <Vehicle />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/features/fines"
-          element={
-            <PrivateRoute>
-              <Fine />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/features/toll"
-          element={
-            <PrivateRoute>
-              <Toll />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/features/transactions"
-          element={
-            <PrivateRoute>
-              <Transaction />
-            </PrivateRoute>
-          }
-        />
+      {/* Feature subpages (protected) */}
+      <Route
+        path="/features/vehicles"
+        element={
+          <PrivateRoute>
+            <Layout><Vehicle /></Layout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/features/fines"
+        element={
+          <PrivateRoute>
+            <Layout><Fine /></Layout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/features/toll"
+        element={
+          <PrivateRoute>
+            <Layout><Toll /></Layout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/features/transactions"
+        element={
+          <PrivateRoute>
+            <Layout><Transaction /></Layout>
+          </PrivateRoute>
+        }
+      />
 
-        {/* Protected dashboard */}
-        <Route
-          path="/dashboard"
-          element={
-            <PrivateRoute>
-              <Dashboard />
-            </PrivateRoute>
-          }
-        />
-        <Route path="/analytics" element={<Analytics />} />
+      {/* Protected user dashboard */}
+      <Route
+        path="/dashboard"
+        element={
+          <PrivateRoute>
+            <Layout><Dashboard /></Layout>
+          </PrivateRoute>
+        }
+      />
+      <Route path="/analytics" element={<Layout><Analytics /></Layout>} />
 
-        {/* ✅ Public Learn More page */}
-        <Route path="/LearnMore" element={<LearnMore />} />
+      {/* Public pages */}
+      <Route path="/LearnMore" element={<Layout><LearnMore /></Layout>} />
 
-        {/* Auth pages */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+      {/* Auth pages (❌ no Layout) */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
 
-
-        {/* Fallback for unknown routes */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Layout>
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 

@@ -4,6 +4,7 @@ import { AuthContext } from "../context/AuthContext.jsx";
 import { ArrowLeft } from "lucide-react";
 
 export default function Login() {
+  const [role, setRole] = useState("user");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
@@ -18,20 +19,33 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      if (role === "admin") {
+        // ⭐ Fake admin login (no backend yet)
+        const fakeAdmin = {
+          email,
+          token: "dummy-admin-token",
+          role: "admin",
+        };
 
-      const data = await res.json();
+        // simulate delay
+        await new Promise((resolve) => setTimeout(resolve, 800));
 
-      if (!res.ok) {
-        throw new Error(data.message || "Login failed");
+        login(fakeAdmin);
+        navigate("/admin/dashboard");
+      } else {
+        // ⭐ Real user login via backend
+        const res = await fetch("http://localhost:5000/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Login failed");
+
+        login(data);
+        navigate("/dashboard");
       }
-
-      login(data);
-      navigate("/");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -40,50 +54,91 @@ export default function Login() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-100 via-blue-200 to-blue-300 relative overflow-hidden">
-      {/* Decorative blurred circles */}
-      <div className="absolute top-20 left-20 w-60 h-60 bg-blue-400/30 rounded-full blur-3xl animate-pulse"></div>
-      <div className="absolute bottom-20 right-20 w-72 h-72 bg-blue-600/20 rounded-full blur-3xl animate-pulse"></div>
+    <div
+      className={`flex items-center justify-center min-h-screen relative overflow-hidden 
+        ${
+          role === "admin"
+            ? "bg-gradient-to-br from-black via-gray-900 to-red-900"
+            : "bg-gradient-to-br from-black via-gray-900 to-blue-900"
+        }`}
+    >
+      {/* Blurred gradient circles */}
+      <div
+        className={`absolute top-32 left-20 w-72 h-72 rounded-full blur-[120px] opacity-30
+          ${role === "admin" ? "bg-red-600" : "bg-blue-600"}`}
+      ></div>
+      <div
+        className={`absolute bottom-32 right-20 w-72 h-72 rounded-full blur-[120px] opacity-30
+          ${role === "admin" ? "bg-red-400" : "bg-blue-400"}`}
+      ></div>
 
-      <div className="relative z-10 bg-white/20 backdrop-blur-2xl p-10 rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] w-full max-w-md border border-white/40 hover:border-blue-300/40 transition-all hover:shadow-[0_8px_40px_rgba(59,130,246,0.3)]">
+      {/* Login Card */}
+      <div className="relative z-10 w-full max-w-md bg-gray-900/80 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-gray-800">
         {/* Back Button */}
         <button
           onClick={() => navigate("/")}
-          className="mb-6 flex items-center gap-2 text-blue-800 hover:text-blue-900 transition font-medium"
+          className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Home
         </button>
 
-        <h2 className="text-4xl font-extrabold mb-6 text-center text-blue-800 tracking-tight drop-shadow-sm">
-          Welcome Back
+        {/* Heading */}
+        <h2 className="text-3xl font-bold mb-8 text-center text-white">
+          {role === "admin" ? "Admin Login" : "User Login"}
         </h2>
 
+        {/* Tabs */}
+        <div className="flex mb-6 rounded-lg overflow-hidden border border-gray-700">
+          <button
+            onClick={() => setRole("user")}
+            className={`flex-1 py-2 text-center font-medium transition 
+              ${
+                role === "user"
+                  ? "bg-blue-600 text-white"
+                  : "bg-transparent text-gray-400 hover:text-white"
+              }`}
+          >
+            User
+          </button>
+          <button
+            onClick={() => setRole("admin")}
+            className={`flex-1 py-2 text-center font-medium transition 
+              ${
+                role === "admin"
+                  ? "bg-red-600 text-white"
+                  : "bg-transparent text-gray-400 hover:text-white"
+              }`}
+          >
+            Admin
+          </button>
+        </div>
+
+        {/* Error Message */}
         {error && (
-          <p className="text-red-500 text-sm mb-4 text-center font-medium animate-pulse">
+          <p className="text-red-400 text-sm mb-4 text-center font-medium">
             {error}
           </p>
         )}
 
+        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Email */}
           <div>
-            <label className="block text-sm font-semibold mb-2 text-gray-900/80">
-              Email
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              {role === "admin" ? "Admin Email" : "User Email"}
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full border border-white/40 rounded-xl px-4 py-3 bg-white/10 text-gray-900/90 placeholder-gray-600/70 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all shadow-sm hover:shadow-md hover:bg-white/20 backdrop-blur-sm"
-              placeholder="Enter your email"
+              className="w-full rounded-lg px-4 py-3 bg-gray-800 text-white placeholder-gray-500 focus:ring-2 focus:ring-offset-1 focus:ring-offset-gray-900 focus:ring-blue-500/60 outline-none transition"
+              placeholder={`Enter your ${role} email`}
             />
           </div>
 
-          {/* Password */}
           <div>
-            <label className="block text-sm font-semibold mb-2 text-gray-900/80">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
               Password
             </label>
             <input
@@ -91,34 +146,39 @@ export default function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full border border-white/40 rounded-xl px-4 py-3 bg-white/10 text-gray-900/90 placeholder-gray-600/70 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all shadow-sm hover:shadow-md hover:bg-white/20 backdrop-blur-sm"
+              className="w-full rounded-lg px-4 py-3 bg-gray-800 text-white placeholder-gray-500 focus:ring-2 focus:ring-offset-1 focus:ring-offset-gray-900 focus:ring-red-500/60 outline-none transition"
               placeholder="Enter your password"
             />
           </div>
 
-          {/* Submit */}
           <button
             type="submit"
             disabled={loading}
-            className={`w-full py-3.5 rounded-xl font-semibold tracking-wide shadow-md transform transition-all border border-white/40 backdrop-blur-sm ${
-              loading
-                ? "bg-blue-400/50 text-white/70 cursor-not-allowed"
-                : "bg-gradient-to-r from-blue-500/70 to-blue-700/70 text-white hover:scale-[1.03] hover:shadow-lg hover:border-blue-300/50"
-            }`}
+            className={`w-full py-3.5 rounded-lg font-semibold tracking-wide shadow-md transition-all 
+              ${
+                loading
+                  ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                  : role === "admin"
+                  ? "bg-gradient-to-r from-red-600 to-red-700 text-white hover:scale-[1.02]"
+                  : "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:scale-[1.02]"
+              }`}
           >
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
 
-        <p className="text-sm text-gray-800/80 mt-8 text-center">
-          Don’t have an account?{" "}
-          <Link
-            to="/register"
-            className="text-blue-700 font-bold hover:underline hover:text-blue-900 transition-colors"
-          >
-            Register
-          </Link>
-        </p>
+        {/* Register link only for users */}
+        {role === "user" && (
+          <p className="text-sm text-gray-400 mt-8 text-center">
+            Don’t have an account?{" "}
+            <Link
+              to="/register"
+              className="font-medium text-blue-400 hover:underline"
+            >
+              Register
+            </Link>
+          </p>
+        )}
       </div>
     </div>
   );
